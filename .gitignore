@@ -11,3 +11,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+
+# machine-specific root certificates for Docker builds (see docker/certs/README.md)
+docker/certs/*.crt

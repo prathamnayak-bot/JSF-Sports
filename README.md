@@ -49,11 +49,32 @@ JSF-Sports/
 ├── data/                        Cricsheet downloads go here (git-ignored)
 ├── docs/                        Abstract, architecture notes
 ├── docker/postgres/             DB init script (read-only user for the chat)
-├── docker-compose.yml           Local PostgreSQL
+├── docker/certs/                Optional extra root certificates for Docker builds
+├── docker-compose.yml           Whole app (postgres + backend + frontend), or just the database
 └── .env.example                 Template for your local secrets
 ```
 
-## Getting started
+## Quick start with Docker (recommended)
+
+Only [Docker Desktop](https://www.docker.com/products/docker-desktop/) is needed — no Java, Node or Maven.
+
+```bash
+git clone https://github.com/prathamnayak-bot/JSF-Sports.git
+cd JSF-Sports
+cp .env.example .env                      # paste your LLM_API_KEY (and optionally CRICKETDATA_API_KEY)
+docker compose up -d --build              # first build takes a few minutes
+curl -X POST http://localhost:3000/api/admin/sync   # load the IPL data (~1 minute, once)
+```
+
+Open **http://localhost:3000** (API docs: http://localhost:3000/swagger-ui.html). Stop with `docker compose down`
+(the data is kept); add `-v` to also delete the database.
+
+> - Port 3000 or 5432 taken? Set `APP_PORT` / `POSTGRES_PORT` in `.env`.
+> - Build fails with `certificate verify failed`? Your antivirus (e.g. Avast Web Shield) or a proxy inspects
+>   HTTPS — see [`docker/certs/README.md`](docker/certs/README.md).
+> - Using Ollama with Docker: set `LLM_BASE_URL=http://host.docker.internal:11434/v1`.
+
+## Local development setup
 
 **You need:** Git, JDK 21+, Node.js 20+, and Docker Desktop (optional — see the H2 option below).
 Maven is not needed; the project uses the Maven wrapper (`mvnw`).
@@ -70,7 +91,7 @@ Optional: a free [CricketData.org](https://cricketdata.org) key (`CRICKETDATA_AP
 **1. Start the database**
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
 ```
 
 This also creates `cricket_readonly`, the read-only login the AI chat's queries run as.

@@ -1,5 +1,6 @@
-# Local PostgreSQL for development:  docker compose up -d
-# Port 5432 already taken on your machine? Set POSTGRES_PORT=5433 in .env (and use it in DB_URL).
+# Whole app, one command (only Docker needed):   docker compose up -d --build   ->  http://localhost:3000
+# Database only, for local development:         docker compose up -d postgres
+# Settings and API keys come from .env (copy .env.example). Port 5432 or 3000 taken? Set POSTGRES_PORT / APP_PORT.
 services:
   postgres:
     image: postgres:17-alpine
@@ -19,6 +20,37 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      additional_contexts:
+        certs: ./docker/certs   # optional extra root certificates, see docker/certs/README.md
+    container_name: cricket-backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # inside Docker the database is reachable by its service name, not localhost
+      DB_URL: jdbc:postgresql://postgres:5432/cricket?reWriteBatchedInserts=true
+      CHAT_DB_URL: jdbc:postgresql://postgres:5432/cricket
+      CHAT_DB_USERNAME: ${CHAT_DB_USERNAME:-cricket_readonly}
+      CHAT_DB_PASSWORD: ${CHAT_DB_PASSWORD:-cricket_readonly}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      additional_contexts:
+        certs: ./docker/certs
+    container_name: cricket-frontend
+    ports:
+      - "${APP_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   pgdata:
