@@ -19,6 +19,7 @@ export const api = {
   searchPlayers: (q) => request(`/players?q=${encodeURIComponent(q)}`),
   playerSummary: (id) => request(`/players/${id}/summary`),
   playerForm: (id, limit = 20) => request(`/players/${id}/form?limit=${limit}`),
+  fixtures: (limit = 12) => request(`/fixtures?limit=${limit}`),
   teams: () => request('/teams'),
   teamSeasons: (id) => request(`/teams/${id}/seasons`),
   venues: () => request('/venues'),

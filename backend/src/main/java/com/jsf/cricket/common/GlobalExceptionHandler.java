@@ -32,6 +32,13 @@ public class GlobalExceptionHandler {
                 "The query could not be run. Try rephrasing the question. (" + e.getMostSpecificCause().getMessage() + ")");
     }
 
+    /** e.g. "Set CRICKETDATA_API_KEY ..." or "A sync is already running" - messages written for the user. */
+    @ExceptionHandler(IllegalStateException.class)
+    public ProblemDetail unavailable(IllegalStateException e) {
+        log.warn("Request failed: {}", e.getMessage());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
+    }
+
     private static ProblemDetail problem(HttpStatus status, String detail) {
         return ProblemDetail.forStatusAndDetail(status, detail);
     }

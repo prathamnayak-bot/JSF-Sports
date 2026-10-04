@@ -393,7 +393,7 @@ public class CricsheetImporter {
      * Cricsheet spells grounds several ways ("Wankhede Stadium", "Wankhede Stadium, Mumbai",
      * "M.Chinnaswamy Stadium"...). Keep the part before the first comma, tidy initials, apply renames.
      */
-    static String canonicalVenue(String name) {
+    public static String canonicalVenue(String name) {
         String base = name.split(",")[0].replace(".", " ").replaceAll("\\s+", " ").strip();
         return VENUE_RENAMES.getOrDefault(base, base);
     }

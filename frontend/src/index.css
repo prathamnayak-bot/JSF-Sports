@@ -91,6 +91,7 @@ th { color: var(--muted); font-weight: 600; text-transform: capitalize; }
 .fantasy-form .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
 .fantasy-form select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
 .fantasy-form .check { display: flex; gap: 8px; align-items: center; margin: 12px 0; color: var(--muted); }
+.fantasy-form .check input { flex: none; width: auto; }
 .fantasy-form button { padding: 10px 18px; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-text); cursor: pointer; }
 .fantasy-form button:disabled { opacity: 0.5; cursor: default; }
 .summary-text { line-height: 1.5; white-space: pre-wrap; }
@@ -108,3 +109,11 @@ details.card summary { font-size: 1rem; }
 .chart-card .caption { margin: 2px 0 0; }
 .table-toggle { margin-top: 8px; }
 .card select.inline { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); max-width: 100%; }
+
+/* fixtures */
+.fixtures { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow-y: auto; }
+.fixtures li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.fixtures li:last-child { border-bottom: none; }
+.pick-xi { flex-shrink: 0; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 999px; background: transparent; color: var(--accent); cursor: pointer; }
+.pick-xi:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); }
+.pick-xi:disabled { opacity: 0.4; cursor: default; border-color: var(--border); color: var(--muted); }

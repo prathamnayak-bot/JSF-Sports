@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import Fixtures from './Fixtures'
 
 const ROLE_ORDER = ['WICKET_KEEPER', 'BATTER', 'ALL_ROUNDER', 'BOWLER']
 const ROLE_LABEL = {
@@ -45,12 +46,12 @@ export default function FantasyPanel() {
   const set = (key) => (e) =>
     setForm((f) => ({ ...f, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
 
-  async function suggest(e) {
-    e.preventDefault()
+  async function suggest(e, picked = form) {
+    e?.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      setResult(await api.fantasy(form))
+      setResult(await api.fantasy(picked))
     } catch (err) {
       setError(err.message)
       setResult(null)
@@ -64,6 +65,13 @@ export default function FantasyPanel() {
 
   return (
     <section className="fantasy">
+      <Fixtures
+        onPick={(f) => {
+          const picked = { ...form, team1: String(f.team1Id), team2: String(f.team2Id), venue: f.venueId ? String(f.venueId) : '' }
+          setForm(picked)
+          suggest(null, picked)
+        }}
+      />
       <form className="card fantasy-form" onSubmit={suggest}>
         <h2>Build a fantasy XI</h2>
         <div className="fields">

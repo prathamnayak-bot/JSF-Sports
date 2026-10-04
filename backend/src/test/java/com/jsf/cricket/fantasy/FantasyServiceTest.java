@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@ActiveProfiles("h2")
+@ActiveProfiles({"h2", "test"})
 class FantasyServiceTest {
 
     @Autowired

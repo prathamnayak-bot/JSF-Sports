@@ -19,7 +19,7 @@ import java.util.zip.ZipOutputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@ActiveProfiles("h2")
+@ActiveProfiles({"h2", "test"})
 class CricsheetImporterTest {
 
     @Autowired

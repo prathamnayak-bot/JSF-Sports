@@ -77,3 +77,13 @@ the SQL the model writes. Keep the comments accurate when you change the schema.
 
 The per-match aggregates are five simple grouped queries merged in Java: a single query with joined CTEs is
 fast on PostgreSQL but takes minutes on H2, which re-evaluates CTEs per row.
+
+## Fixtures
+
+`FixtureService` uses the CricketData.org API with 2 calls per refresh (the free plan allows 100/day): a series
+search for `app.fixtures.series` (default "Indian Premier League"), then the match list of the newest series
+that has fixtures. Rows go into the `fixture` table, linked to our `team` / `venue` rows by name (venue names
+go through the same normalisation as the importer). It refreshes on startup when the table is empty and daily
+at 04:30. The API echoes the key in every response, so error messages never include URLs or response bodies.
+The Fantasy tab lists upcoming fixtures (or the latest results off-season) with a one-click "Pick XI", and the
+AI chat can answer "when is the next match" questions from the same table.

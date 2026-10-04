@@ -22,7 +22,7 @@ Approved abstract: [`docs/abstract/`](docs/abstract/) · Design notes: [`docs/ar
 |---|---|
 | Backend | Java 21, Spring Boot 4 (Web MVC, Data JPA / Hibernate, Validation, Actuator), springdoc OpenAPI |
 | Database | PostgreSQL 17 (Docker) · H2 in-memory for quick runs without Docker |
-| Data | [Cricsheet](https://cricsheet.org) ball-by-ball JSON (importer included) |
+| Data | [Cricsheet](https://cricsheet.org) ball-by-ball JSON (importer + daily sync), [CricketData.org](https://cricketdata.org) fixtures |
 | AI | Any OpenAI-compatible LLM API — Groq (gpt-oss-120b, free tier), OpenAI (GPT-4o-mini) or local Ollama (qwen2.5-coder) |
 | Frontend | React 19 + Vite, Chart.js |
 
@@ -38,6 +38,7 @@ JSF-Sports/
 │       ├── llm/                 LLM client (OpenAI-compatible chat completions)
 │       ├── chat/                Text-to-SQL pipeline, SQL safety guard, /api/chat
 │       ├── fantasy/             Fantasy points, projections, XI selection, /api/fantasy
+│       ├── fixtures/            CricketData.org fixtures, /api/fixtures
 │       ├── api/                 Browse/stats REST endpoints
 │       ├── config/              CORS, LLM settings
 │       └── common/              Error handling
@@ -64,6 +65,7 @@ cp .env.example .env          # then paste your LLM_API_KEY into .env
 ```
 
 Get a free LLM key from [Groq](https://console.groq.com/keys) (or use OpenAI / Ollama — see `.env.example`).
+Optional: a free [CricketData.org](https://cricketdata.org) key (`CRICKETDATA_API_KEY`) shows fixtures in the Fantasy tab.
 
 **1. Start the database**
 
@@ -119,6 +121,7 @@ Interactive docs (try every endpoint in the browser): **http://localhost:8080/sw
 | `POST` | `/api/chat` | `{"question": "..."}` → `{question, sql, rows, answer}` |
 | `GET` | `/api/stats/overview` | Counts of matches, teams, players, venues, balls |
 | `GET` | `/api/fantasy/suggest?team1=&team2=&venue=&explain=true` | Fantasy XI with captain / vice-captain (venue optional) |
+| `GET` | `/api/fixtures` | Upcoming fixtures (or latest results when none are scheduled) |
 | `GET` | `/api/teams` | All teams |
 | `GET` | `/api/venues` | All venues |
 | `GET` | `/api/players?q=kohli` | Search players by name |
@@ -127,6 +130,7 @@ Interactive docs (try every endpoint in the browser): **http://localhost:8080/sw
 | `GET` | `/api/teams/{id}/seasons` | Wins / losses per season |
 | `GET` | `/api/matches?limit=20` | Most recent matches |
 | `POST` | `/api/admin/sync` | Download the configured Cricsheet datasets and import new matches |
+| `POST` | `/api/admin/fixtures/refresh` | Reload fixtures from CricketData.org (2 API calls) |
 | `POST` | `/api/admin/import` | `{"directory": "..."}` — import a folder of Cricsheet JSON files |
 | `GET` | `/actuator/health` | Health check |
 
@@ -147,7 +151,7 @@ GitHub Actions runs both on every push and pull request.
 - [x] Fantasy advisor: form score, venue/matchup factors, playing XI with captain / vice-captain
 - [x] Charts (Chart.js) for player form and team trends
 - [x] Scheduled sync job (`@Scheduled`) for new Cricsheet matches
-- [ ] Upcoming fixtures from the CricketData.org API
+- [x] Fixtures from the CricketData.org API, with one-click fantasy XI
 - [ ] Player roles and batting/bowling styles
 - [x] Separate read-only database user for chat queries
 - [x] Venue / franchise name clean-up (Cricsheet spells grounds several ways)

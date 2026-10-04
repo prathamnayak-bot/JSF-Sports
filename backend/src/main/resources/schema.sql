@@ -110,3 +110,26 @@ CREATE INDEX IF NOT EXISTS idx_delivery_batter  ON delivery(batter_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_bowler  ON delivery(bowler_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_fielder ON delivery(fielder_id);
 CREATE INDEX IF NOT EXISTS idx_match_date       ON cricket_match(match_date);
+
+-- Scheduled and recent matches from the CricketData.org API (refreshed daily). Use this table for
+-- "next match" / "upcoming fixtures" questions; completed-match statistics live in cricket_match.
+-- start_time is in GMT (India = GMT + 5:30). team1_id / team2_id / venue_id link to our tables when the
+-- names match (NULL otherwise). status is free text, e.g. 'Match starts at Mar 28, 14:00 GMT' or
+-- 'Chennai Super Kings won by 23 runs'.
+CREATE TABLE IF NOT EXISTS fixture (
+    id             VARCHAR(40) PRIMARY KEY,
+    series_name    VARCHAR(200) NOT NULL,
+    name           VARCHAR(300) NOT NULL,
+    start_time     TIMESTAMP NOT NULL,
+    venue_name     VARCHAR(200),
+    team1_name     VARCHAR(120) NOT NULL,
+    team2_name     VARCHAR(120) NOT NULL,
+    team1_id       BIGINT REFERENCES team(id),
+    team2_id       BIGINT REFERENCES team(id),
+    venue_id       BIGINT REFERENCES venue(id),
+    status         VARCHAR(300),
+    match_started  BOOLEAN NOT NULL DEFAULT FALSE,
+    match_ended    BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_fixture_start ON fixture(start_time);
