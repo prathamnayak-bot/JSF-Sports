@@ -1,5 +1,6 @@
 package com.jsf.cricket.ingest;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 /** Local-development endpoints to load Cricsheet data (from the server's disk, or downloaded fresh). */
 @RestController
+@Tag(name = "Admin", description = "Load Cricsheet data (local development)")
 @RequestMapping("/api/admin")
 public class ImportController {
 

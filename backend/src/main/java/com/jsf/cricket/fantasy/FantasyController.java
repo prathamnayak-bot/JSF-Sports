@@ -1,5 +1,6 @@
 package com.jsf.cricket.fantasy;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 
 @RestController
+@Tag(name = "Fantasy advisor", description = "Fantasy XI suggestions and player form")
 @RequestMapping("/api")
 public class FantasyController {
 

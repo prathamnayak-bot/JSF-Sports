@@ -20,7 +20,7 @@ Approved abstract: [`docs/abstract/`](docs/abstract/) · Design notes: [`docs/ar
 
 | Layer | Technology |
 |---|---|
-| Backend | Java 21, Spring Boot 4 (Web MVC, Data JPA / Hibernate, Validation, Actuator) |
+| Backend | Java 21, Spring Boot 4 (Web MVC, Data JPA / Hibernate, Validation, Actuator), springdoc OpenAPI |
 | Database | PostgreSQL 17 (Docker) · H2 in-memory for quick runs without Docker |
 | Data | [Cricsheet](https://cricsheet.org) ball-by-ball JSON (importer included) |
 | AI | Any OpenAI-compatible LLM API — Groq (gpt-oss-120b, free tier), OpenAI (GPT-4o-mini) or local Ollama (qwen2.5-coder) |
@@ -73,7 +73,7 @@ docker compose up -d
 
 This also creates `cricket_readonly`, the read-only login the AI chat's queries run as.
 Port 5432 already in use (e.g. by a PostgreSQL installed on Windows)? Set `POSTGRES_PORT=5433` in `.env`
-and change `DB_URL` to `...localhost:5433/cricket`.
+and change the port in `DB_URL` to 5433.
 
 **2. Start the backend** (http://localhost:8080)
 
@@ -111,6 +111,8 @@ npm run dev
 > `./mvnw spring-boot:run "-Dspring-boot.run.jvmArguments=-Djavax.net.ssl.trustStoreType=Windows-ROOT"`.
 
 ## REST API
+
+Interactive docs (try every endpoint in the browser): **http://localhost:8080/swagger-ui.html** · OpenAPI JSON: `/v3/api-docs`
 
 | Method | Path | Description |
 |---|---|---|

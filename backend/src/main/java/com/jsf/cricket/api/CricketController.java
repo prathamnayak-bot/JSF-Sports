@@ -1,5 +1,6 @@
 package com.jsf.cricket.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.jsf.cricket.domain.CricketMatch;
 import com.jsf.cricket.domain.Player;
 import com.jsf.cricket.domain.Team;
@@ -23,6 +24,7 @@ import java.util.List;
 
 /** Read-only browsing endpoints used by the stats pages of the frontend. */
 @RestController
+@Tag(name = "Stats", description = "Teams, players, venues, matches and aggregates")
 @RequestMapping("/api")
 public class CricketController {
 

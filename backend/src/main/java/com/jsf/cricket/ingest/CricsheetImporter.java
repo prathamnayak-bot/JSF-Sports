@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,8 +101,11 @@ public class CricsheetImporter {
             files = s.filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList();
         }
         Tally tally = new Tally();
+        Lookup lookup = new Lookup();
         for (Path file : files) {
-            tally.run(file.getFileName().toString(), () -> importFile(file));
+            String cricsheetId = file.getFileName().toString().replaceFirst("\\.json$", "");
+            tally.run(file.getFileName().toString(),
+                    () -> importIfNew(cricsheetId, () -> mapper.readTree(file.toFile()), lookup));
         }
         log.info("Cricsheet import from {}: {}", dir, tally);
         return tally.result();
@@ -110,20 +114,19 @@ public class CricsheetImporter {
     /** Imports the match files straight out of a Cricsheet zip download, without unzipping to disk. */
     public ImportResult importZip(Path zip) throws IOException {
         Tally tally = new Tally();
+        Lookup lookup = new Lookup();
         try (ZipFile zf = new ZipFile(zip.toFile())) {
             for (ZipEntry entry : Collections.list(zf.entries())) {
                 String name = Path.of(entry.getName()).getFileName().toString();
                 if (entry.isDirectory() || !name.endsWith(".json")) continue;
-                tally.run(name, () -> {
-                    String cricsheetId = name.replaceFirst("\\.json$", "");
-                    if (matches.existsByCricsheetId(cricsheetId)) return false;
+                String cricsheetId = name.replaceFirst("\\.json$", "");
+                tally.run(name, () -> importIfNew(cricsheetId, () -> {
                     try (InputStream in = zf.getInputStream(entry)) {
-                        importJson(cricsheetId, mapper.readTree(in));
+                        return mapper.readTree(in);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
-                    return true;
-                });
+                }, lookup));
             }
         }
         log.info("Cricsheet import from {}: {}", zip.getFileName(), tally);
@@ -156,26 +159,31 @@ public class CricsheetImporter {
         }
     }
 
-    /** Imports one match file. Returns false if the match was already in the database. */
-    public boolean importFile(Path file) {
-        String cricsheetId = file.getFileName().toString().replaceFirst("\\.json$", "");
-        if (matches.existsByCricsheetId(cricsheetId)) return false;
-        importJson(cricsheetId, mapper.readTree(file.toFile()));
+    /**
+     * Imports one match (in its own transaction) unless it is already stored. Returns false if skipped.
+     * The JSON is only parsed for new matches.
+     */
+    private boolean importIfNew(String cricsheetId, Supplier<JsonNode> json, Lookup lookup) {
+        if (lookup.knownMatches.contains(cricsheetId)) return false;
+        JsonNode root = json.get();
+        try {
+            tx.executeWithoutResult(status -> importMatch(cricsheetId, root, lookup));
+            lookup.commit(cricsheetId);
+        } catch (RuntimeException e) {
+            lookup.rollback();
+            throw e;
+        }
         return true;
     }
 
-    private void importJson(String cricsheetId, JsonNode root) {
-        tx.executeWithoutResult(status -> importMatch(cricsheetId, root));
-    }
-
-    private void importMatch(String cricsheetId, JsonNode root) {
+    private void importMatch(String cricsheetId, JsonNode root, Lookup lookup) {
         JsonNode info = root.path("info");
-        People people = new People(info);
+        People people = new People(info, lookup);
 
         List<String> teamNames = new ArrayList<>();
         info.path("teams").forEach(t -> teamNames.add(t.asString()));
         Map<String, Team> teamByName = new HashMap<>();
-        teamNames.forEach(n -> teamByName.put(n, team(n)));
+        teamNames.forEach(n -> teamByName.put(n, team(n, lookup)));
 
         CricketMatch m = new CricketMatch();
         m.setCricsheetId(cricsheetId);
@@ -183,7 +191,9 @@ public class CricsheetImporter {
         m.setEventName(textOrNull(info.path("event").path("name")));
         m.setSeason(textOrNull(info.path("season")));
         m.setMatchDate(LocalDate.parse(info.path("dates").path(0).asString()));
-        if (info.hasNonNull("venue")) m.setVenue(venue(info.get("venue").asString(), textOrNull(info.path("city"))));
+        if (info.hasNonNull("venue")) {
+            m.setVenue(venue(info.get("venue").asString(), textOrNull(info.path("city")), lookup));
+        }
         m.setTeam1(teamByName.get(teamNames.get(0)));
         m.setTeam2(teamByName.get(teamNames.get(1)));
         m.setTossWinner(teamByName.get(textOrNull(info.path("toss").path("winner"))));
@@ -198,7 +208,7 @@ public class CricsheetImporter {
             }
         }
         if (info.path("player_of_match").size() > 0) {
-            m.setPlayerOfMatch(people.get(info.path("player_of_match").path(0).asString()));
+            m.setPlayerOfMatch(players.getReferenceById(people.id(info.path("player_of_match").path(0).asString())));
         }
         matches.save(m);
 
@@ -206,7 +216,7 @@ public class CricsheetImporter {
         for (Map.Entry<String, JsonNode> e : info.path("players").properties()) {
             Team team = teamByName.get(e.getKey());
             for (JsonNode name : e.getValue()) {
-                lineup.add(new Object[]{m.getId(), team.getId(), people.get(name.asString()).getId()});
+                lineup.add(new Object[]{m.getId(), team.getId(), people.id(name.asString())});
             }
         }
         jdbc.batchUpdate("INSERT INTO match_player (match_id, team_id, player_id) VALUES (?, ?, ?)", lineup);
@@ -215,7 +225,7 @@ public class CricsheetImporter {
         for (JsonNode inn : root.path("innings")) {
             if (inn.path("super_over").asBoolean(false)) continue; // keep regular-play stats clean
             Team batting = teamByName.get(inn.path("team").asString());
-            Team bowling = batting == m.getTeam1() ? m.getTeam2() : m.getTeam1();
+            Team bowling = batting.getId().equals(m.getTeam1().getId()) ? m.getTeam2() : m.getTeam1();
             importInnings(m, ++number, batting, bowling, inn, people);
         }
     }
@@ -245,7 +255,7 @@ public class CricsheetImporter {
                 JsonNode wicket = d.path("wickets").path(0);
                 if (!wicket.isMissingNode()) {
                     wicketKind = wicket.path("kind").asString();
-                    playerOutId = people.get(wicket.path("player_out").asString()).getId();
+                    playerOutId = people.id(wicket.path("player_out").asString());
                     fielderId = fielderId(wicket, wicketKind, d, people);
                     if (!NOT_A_WICKET.contains(wicketKind)) wickets += d.path("wickets").size();
                 }
@@ -255,9 +265,9 @@ public class CricsheetImporter {
                 if (legal) legalBalls++;
                 rows.add(new Object[]{
                         innings.getId(), overNumber, ++ballInOver,
-                        people.get(d.path("batter").asString()).getId(),
-                        people.get(d.path("bowler").asString()).getId(),
-                        people.get(d.path("non_striker").asString()).getId(),
+                        people.id(d.path("batter").asString()),
+                        people.id(d.path("bowler").asString()),
+                        people.id(d.path("non_striker").asString()),
                         d.path("runs").path("batter").asInt(), d.path("runs").path("extras").asInt(), total,
                         extraType, legal, wicketKind, playerOutId, fielderId});
             }
@@ -271,50 +281,112 @@ public class CricsheetImporter {
 
     /** The fielder credited with a dismissal; substitutes are skipped (they aren't in the playing XI). */
     private static Long fielderId(JsonNode wicket, String kind, JsonNode delivery, People people) {
-        if ("caught and bowled".equals(kind)) return people.get(delivery.path("bowler").asString()).getId();
+        if ("caught and bowled".equals(kind)) return people.id(delivery.path("bowler").asString());
         JsonNode fielder = wicket.path("fielders").path(0);
         if (fielder.isMissingNode() || fielder.path("substitute").asBoolean(false) || !fielder.has("name")) return null;
-        Player p = people.find(fielder.path("name").asString());
-        return p == null ? null : p.getId();
+        return people.find(fielder.path("name").asString());
     }
 
     /**
-     * Maps names used in one match file to Player rows. Cricsheet's registry gives each name a stable id;
+     * Ids of the players, teams, venues and matches already stored, loaded once per import run so each match
+     * file doesn't need ~30 lookup queries. Rows created while importing a file are kept aside and only added
+     * once that file's transaction commits (a failed file rolls its new rows back).
+     */
+    private class Lookup {
+        final Set<String> knownMatches = new HashSet<>(
+                jdbc.queryForList("SELECT cricsheet_id FROM cricket_match WHERE cricsheet_id IS NOT NULL", String.class));
+        final Map<String, Long> playerIds = load("SELECT cricsheet_id, id FROM player WHERE cricsheet_id IS NOT NULL");
+        final Map<String, Long> teamIds = load("SELECT name, id FROM team");
+        final Map<String, Long> venueIds = load("SELECT name, id FROM venue");
+        final Map<String, Long> newPlayers = new HashMap<>(), newTeams = new HashMap<>(), newVenues = new HashMap<>();
+
+        private Map<String, Long> load(String sql) {
+            Map<String, Long> map = new HashMap<>();
+            jdbc.query(sql, rs -> {
+                map.put(rs.getString(1), rs.getLong(2));
+            });
+            return map;
+        }
+
+        Long player(String cricsheetId) {
+            Long id = playerIds.get(cricsheetId);
+            return id != null ? id : newPlayers.get(cricsheetId);
+        }
+
+        Long team(String name) {
+            Long id = teamIds.get(name);
+            return id != null ? id : newTeams.get(name);
+        }
+
+        Long venue(String name) {
+            Long id = venueIds.get(name);
+            return id != null ? id : newVenues.get(name);
+        }
+
+        void commit(String cricsheetId) {
+            knownMatches.add(cricsheetId);
+            playerIds.putAll(newPlayers);
+            teamIds.putAll(newTeams);
+            venueIds.putAll(newVenues);
+            rollback();
+        }
+
+        void rollback() {
+            newPlayers.clear();
+            newTeams.clear();
+            newVenues.clear();
+        }
+    }
+
+    /**
+     * Maps names used in one match file to player ids. Cricsheet's registry gives each name a stable id;
      * players are created lazily so officials listed in the registry don't end up in the player table.
      */
     private class People {
-        private final Map<String, String> idByName = new HashMap<>();
-        private final Map<String, Player> cache = new HashMap<>();
+        private final Map<String, String> cricsheetIdByName = new HashMap<>();
+        private final Lookup lookup;
 
-        People(JsonNode info) {
+        People(JsonNode info, Lookup lookup) {
+            this.lookup = lookup;
             for (Map.Entry<String, JsonNode> e : info.path("registry").path("people").properties()) {
-                idByName.put(e.getKey(), e.getValue().asString());
+                cricsheetIdByName.put(e.getKey(), e.getValue().asString());
             }
         }
 
-        /** Like {@link #get} but returns null for names missing from the registry. */
-        Player find(String name) {
-            return idByName.containsKey(name) ? get(name) : null;
+        /** Like {@link #id} but returns null for names missing from the registry. */
+        Long find(String name) {
+            return cricsheetIdByName.containsKey(name) ? id(name) : null;
         }
 
-        Player get(String name) {
-            return cache.computeIfAbsent(name, n -> {
-                String id = idByName.get(n);
-                if (id == null) throw new IllegalStateException("Player not in registry: " + n);
-                return players.findByCricsheetId(id).orElseGet(() -> players.save(new Player(id, n)));
-            });
+        Long id(String name) {
+            String cricsheetId = cricsheetIdByName.get(name);
+            if (cricsheetId == null) throw new IllegalStateException("Player not in registry: " + name);
+            Long id = lookup.player(cricsheetId);
+            if (id == null) {
+                id = players.save(new Player(cricsheetId, name)).getId();
+                lookup.newPlayers.put(cricsheetId, id);
+            }
+            return id;
         }
     }
 
-    private Team team(String nameInFile) {
+    private Team team(String nameInFile, Lookup lookup) {
         String name = TEAM_RENAMES.getOrDefault(nameInFile, nameInFile);
-        return teams.findByName(name).orElseGet(() -> teams.save(new Team(name)));
+        Long id = lookup.team(name);
+        if (id != null) return teams.getReferenceById(id);
+        Team team = teams.save(new Team(name));
+        lookup.newTeams.put(name, team.getId());
+        return team;
     }
 
-    private Venue venue(String nameInFile, String cityInFile) {
+    private Venue venue(String nameInFile, String cityInFile, Lookup lookup) {
         String name = canonicalVenue(nameInFile);
+        Long id = lookup.venue(name);
+        if (id != null) return venues.getReferenceById(id);
         String city = cityInFile == null ? null : CITY_RENAMES.getOrDefault(cityInFile, cityInFile);
-        return venues.findByName(name).orElseGet(() -> venues.save(new Venue(name, city)));
+        Venue venue = venues.save(new Venue(name, city));
+        lookup.newVenues.put(name, venue.getId());
+        return venue;
     }
 
     /**

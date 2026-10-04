@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface CricketMatchRepository extends JpaRepository<CricketMatch, Long> {
-    boolean existsByCricsheetId(String cricsheetId);
 
     @EntityGraph(attributePaths = {"venue", "team1", "team2", "winner"})
     List<CricketMatch> findAllByOrderByMatchDateDesc(Pageable pageable);
