@@ -1,0 +1,66 @@
+{
+  "meta": {"data_version": "1.1.0", "created": "2024-01-01", "revision": 1},
+  "info": {
+    "city": "Chennai",
+    "dates": ["2024-03-22"],
+    "event": {"name": "Indian Premier League", "match_number": 1},
+    "gender": "male",
+    "match_type": "T20",
+    "outcome": {"winner": "Chennai Super Kings", "by": {"wickets": 9}},
+    "overs": 20,
+    "player_of_match": ["Bowler One"],
+    "players": {
+      "Royal Challengers Bengaluru": ["Batter A", "Batter B", "Bowler Two"],
+      "Chennai Super Kings": ["Batter C", "Batter D", "Bowler One"]
+    },
+    "registry": {
+      "people": {
+        "Batter A": "aaaa0001", "Batter B": "aaaa0002", "Bowler Two": "aaaa0003",
+        "Batter C": "bbbb0001", "Batter D": "bbbb0002", "Bowler One": "bbbb0003",
+        "Some Umpire": "uuuu0001"
+      }
+    },
+    "officials": {"umpires": ["Some Umpire"]},
+    "season": "2024",
+    "team_type": "club",
+    "teams": ["Royal Challengers Bengaluru", "Chennai Super Kings"],
+    "toss": {"decision": "bat", "winner": "Royal Challengers Bengaluru"},
+    "venue": "MA Chidambaram Stadium, Chepauk, Chennai"
+  },
+  "innings": [
+    {
+      "team": "Royal Challengers Bengaluru",
+      "overs": [
+        {"over": 0, "deliveries": [
+          {"batter": "Batter A", "bowler": "Bowler One", "non_striker": "Batter B", "runs": {"batter": 4, "extras": 0, "total": 4}},
+          {"batter": "Batter A", "bowler": "Bowler One", "non_striker": "Batter B", "extras": {"wides": 1}, "runs": {"batter": 0, "extras": 1, "total": 1}},
+          {"batter": "Batter A", "bowler": "Bowler One", "non_striker": "Batter B", "runs": {"batter": 0, "extras": 0, "total": 0},
+           "wickets": [{"player_out": "Batter A", "kind": "caught", "fielders": [{"name": "Batter C"}]}]},
+          {"batter": "Batter B", "bowler": "Bowler One", "non_striker": "Bowler Two", "runs": {"batter": 6, "extras": 0, "total": 6}},
+          {"batter": "Batter B", "bowler": "Bowler One", "non_striker": "Bowler Two", "extras": {"legbyes": 1}, "runs": {"batter": 0, "extras": 1, "total": 1}},
+          {"batter": "Bowler Two", "bowler": "Bowler One", "non_striker": "Batter B", "runs": {"batter": 1, "extras": 0, "total": 1}},
+          {"batter": "Batter B", "bowler": "Bowler One", "non_striker": "Bowler Two", "runs": {"batter": 0, "extras": 0, "total": 0}}
+        ]}
+      ]
+    },
+    {
+      "team": "Chennai Super Kings",
+      "overs": [
+        {"over": 0, "deliveries": [
+          {"batter": "Batter C", "bowler": "Bowler Two", "non_striker": "Batter D", "runs": {"batter": 6, "extras": 0, "total": 6}},
+          {"batter": "Batter C", "bowler": "Bowler Two", "non_striker": "Batter D", "extras": {"noballs": 1}, "runs": {"batter": 4, "extras": 1, "total": 5}},
+          {"batter": "Batter C", "bowler": "Bowler Two", "non_striker": "Batter D", "runs": {"batter": 2, "extras": 0, "total": 2}}
+        ]}
+      ]
+    },
+    {
+      "team": "Chennai Super Kings",
+      "super_over": true,
+      "overs": [
+        {"over": 0, "deliveries": [
+          {"batter": "Batter C", "bowler": "Bowler Two", "non_striker": "Batter D", "runs": {"batter": 1, "extras": 0, "total": 1}}
+        ]}
+      ]
+    }
+  ]
+}
