@@ -36,6 +36,8 @@ services:
       CHAT_DB_URL: jdbc:postgresql://postgres:5432/cricket
       CHAT_DB_USERNAME: ${CHAT_DB_USERNAME:-cricket_readonly}
       CHAT_DB_PASSWORD: ${CHAT_DB_PASSWORD:-cricket_readonly}
+      # the website (nginx) and the Vite dev server may call the API from the browser
+      CORS_ORIGINS: http://localhost:${APP_PORT:-3000},http://localhost:5173
     depends_on:
       postgres:
         condition: service_healthy
