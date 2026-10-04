@@ -2,7 +2,8 @@
 -- This file is the single source of truth: it creates the tables on startup
 -- AND is sent to the LLM as context for text-to-SQL, so keep the comments accurate.
 
--- A franchise or national side, e.g. 'Chennai Super Kings', 'India'.
+-- A franchise or national side, e.g. 'Chennai Super Kings', 'India'. Renamed franchises are stored under
+-- their current name (e.g. 'Delhi Daredevils' -> 'Delhi Capitals', 'Kings XI Punjab' -> 'Punjab Kings').
 CREATE TABLE IF NOT EXISTS team (
     id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR(120) NOT NULL UNIQUE
@@ -80,6 +81,8 @@ CREATE TABLE IF NOT EXISTS innings (
 -- wicket_kind is NULL or e.g. 'caught', 'bowled', 'lbw', 'run out', 'stumped'.
 -- A bowler is credited with the wicket unless wicket_kind is 'run out', 'retired hurt',
 -- 'retired out' or 'obstructing the field'.
+-- fielder_id is the fielder credited with a catch, stumping or run out (NULL otherwise or for substitutes);
+-- for 'caught and bowled' it is the bowler. Stumpings are made by the wicket-keeper.
 CREATE TABLE IF NOT EXISTS delivery (
     id               BIGSERIAL PRIMARY KEY,
     innings_id       BIGINT NOT NULL REFERENCES innings(id),
@@ -94,10 +97,15 @@ CREATE TABLE IF NOT EXISTS delivery (
     extra_type       VARCHAR(10),
     is_legal_ball    BOOLEAN NOT NULL DEFAULT TRUE,
     wicket_kind      VARCHAR(30),
-    player_out_id    BIGINT REFERENCES player(id)
+    player_out_id    BIGINT REFERENCES player(id),
+    fielder_id       BIGINT REFERENCES player(id)
 );
+
+-- for databases created before fielder_id existed
+ALTER TABLE delivery ADD COLUMN IF NOT EXISTS fielder_id BIGINT REFERENCES player(id);
 
 CREATE INDEX IF NOT EXISTS idx_delivery_innings ON delivery(innings_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_batter  ON delivery(batter_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_bowler  ON delivery(bowler_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_fielder ON delivery(fielder_id);
 CREATE INDEX IF NOT EXISTS idx_match_date       ON cricket_match(match_date);

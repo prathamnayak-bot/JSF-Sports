@@ -39,11 +39,18 @@ public class CricsheetImporter {
     /** Dismissals that are not credited to the bowler and/or don't count as a wicket. */
     private static final Set<String> NOT_A_WICKET = Set.of("retired hurt", "retired not out");
 
+    /** Renamed franchises, stored under their current name so their history stays together. */
+    private static final Map<String, String> TEAM_RENAMES = Map.of(
+            "Delhi Daredevils", "Delhi Capitals",
+            "Kings XI Punjab", "Punjab Kings",
+            "Royal Challengers Bangalore", "Royal Challengers Bengaluru",
+            "Rising Pune Supergiants", "Rising Pune Supergiant");
+
     private static final String INSERT_DELIVERY = """
             INSERT INTO delivery (innings_id, over_number, ball_in_over, batter_id, bowler_id, non_striker_id,
                                   runs_batter, runs_extras, runs_total, extra_type, is_legal_ball,
-                                  wicket_kind, player_out_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+                                  wicket_kind, player_out_id, fielder_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
     private final ObjectMapper mapper;
     private final JdbcTemplate jdbc;
@@ -174,10 +181,12 @@ public class CricsheetImporter {
 
                 String wicketKind = null;
                 Long playerOutId = null;
+                Long fielderId = null;
                 JsonNode wicket = d.path("wickets").path(0);
                 if (!wicket.isMissingNode()) {
                     wicketKind = wicket.path("kind").asString();
                     playerOutId = people.get(wicket.path("player_out").asString()).getId();
+                    fielderId = fielderId(wicket, wicketKind, d, people);
                     if (!NOT_A_WICKET.contains(wicketKind)) wickets += d.path("wickets").size();
                 }
 
@@ -190,7 +199,7 @@ public class CricsheetImporter {
                         people.get(d.path("bowler").asString()).getId(),
                         people.get(d.path("non_striker").asString()).getId(),
                         d.path("runs").path("batter").asInt(), d.path("runs").path("extras").asInt(), total,
-                        extraType, legal, wicketKind, playerOutId});
+                        extraType, legal, wicketKind, playerOutId, fielderId});
             }
         }
         jdbc.batchUpdate(INSERT_DELIVERY, rows);
@@ -198,6 +207,15 @@ public class CricsheetImporter {
         innings.setTotalRuns(runs);
         innings.setTotalWickets(wickets);
         innings.setLegalBalls(legalBalls);
+    }
+
+    /** The fielder credited with a dismissal; substitutes are skipped (they aren't in the playing XI). */
+    private static Long fielderId(JsonNode wicket, String kind, JsonNode delivery, People people) {
+        if ("caught and bowled".equals(kind)) return people.get(delivery.path("bowler").asString()).getId();
+        JsonNode fielder = wicket.path("fielders").path(0);
+        if (fielder.isMissingNode() || fielder.path("substitute").asBoolean(false) || !fielder.has("name")) return null;
+        Player p = people.find(fielder.path("name").asString());
+        return p == null ? null : p.getId();
     }
 
     /**
@@ -214,6 +232,11 @@ public class CricsheetImporter {
             }
         }
 
+        /** Like {@link #get} but returns null for names missing from the registry. */
+        Player find(String name) {
+            return idByName.containsKey(name) ? get(name) : null;
+        }
+
         Player get(String name) {
             return cache.computeIfAbsent(name, n -> {
                 String id = idByName.get(n);
@@ -223,7 +246,8 @@ public class CricsheetImporter {
         }
     }
 
-    private Team team(String name) {
+    private Team team(String nameInFile) {
+        String name = TEAM_RENAMES.getOrDefault(nameInFile, nameInFile);
         return teams.findByName(name).orElseGet(() -> teams.save(new Team(name)));
     }
 

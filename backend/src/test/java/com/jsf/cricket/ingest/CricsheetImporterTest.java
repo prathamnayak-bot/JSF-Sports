@@ -31,8 +31,9 @@ class CricsheetImporterTest {
     void importsSampleMatchAndComputesStats() throws Exception {
         Path dir = new ClassPathResource("cricsheet").getFile().toPath();
 
+        // tests share one in-memory database, so another test may have imported the sample already
         CricsheetImporter.ImportResult first = importer.importDirectory(dir);
-        assertThat(first.imported()).isEqualTo(1);
+        assertThat(first.imported() + first.skipped()).isEqualTo(1);
         assertThat(first.failed()).isZero();
         assertThat(importer.importDirectory(dir).skipped()).as("re-import is skipped").isEqualTo(1);
 
@@ -51,6 +52,10 @@ class CricsheetImporterTest {
 
         assertThat(players.findByCricsheetId("uuuu0001")).as("umpires are not players").isEmpty();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM match_player", Integer.class)).isEqualTo(6);
+
+        long batterC = players.findByCricsheetId("bbbb0001").orElseThrow().getId();
+        assertThat(jdbc.queryForObject("SELECT fielder_id FROM delivery WHERE wicket_kind = 'caught'", Long.class))
+                .as("catch credited to the fielder").isEqualTo(batterC);
 
         long batterA = players.findByCricsheetId("aaaa0001").orElseThrow().getId();
         StatsQueries.BattingSummary bat = stats.batting(batterA);

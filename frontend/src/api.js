@@ -18,4 +18,10 @@ export const api = {
   recentMatches: (limit = 10) => request(`/matches?limit=${limit}`),
   searchPlayers: (q) => request(`/players?q=${encodeURIComponent(q)}`),
   playerSummary: (id) => request(`/players/${id}/summary`),
+  teams: () => request('/teams'),
+  venues: () => request('/venues'),
+  fantasy: ({ team1, team2, venue, explain }) =>
+    request(
+      `/fantasy/suggest?team1=${team1}&team2=${team2}${venue ? `&venue=${venue}` : ''}&explain=${explain}`,
+    ),
 }

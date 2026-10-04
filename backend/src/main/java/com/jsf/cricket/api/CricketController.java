@@ -6,6 +6,7 @@ import com.jsf.cricket.domain.Team;
 import com.jsf.cricket.repository.CricketMatchRepository;
 import com.jsf.cricket.repository.PlayerRepository;
 import com.jsf.cricket.repository.TeamRepository;
+import com.jsf.cricket.repository.VenueRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -28,14 +29,19 @@ public class CricketController {
     private final TeamRepository teams;
     private final PlayerRepository players;
     private final CricketMatchRepository matches;
+    private final VenueRepository venues;
     private final StatsQueries stats;
 
-    public CricketController(TeamRepository teams, PlayerRepository players,
-                             CricketMatchRepository matches, StatsQueries stats) {
+    public CricketController(TeamRepository teams, PlayerRepository players, CricketMatchRepository matches,
+                             VenueRepository venues, StatsQueries stats) {
         this.teams = teams;
         this.players = players;
         this.matches = matches;
+        this.venues = venues;
         this.stats = stats;
+    }
+
+    public record VenueDto(Long id, String name, String city) {
     }
 
     public record TeamDto(Long id, String name) {
@@ -73,6 +79,11 @@ public class CricketController {
     @GetMapping("/teams")
     public List<TeamDto> teams() {
         return teams.findAll(Sort.by("name")).stream().map(TeamDto::of).toList();
+    }
+
+    @GetMapping("/venues")
+    public List<VenueDto> venues() {
+        return venues.findAll(Sort.by("name")).stream().map(v -> new VenueDto(v.getId(), v.getName(), v.getCity())).toList();
     }
 
     @GetMapping("/players")

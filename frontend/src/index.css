@@ -81,3 +81,19 @@ th { color: var(--muted); font-weight: 600; text-transform: capitalize; }
 .matches { list-style: none; padding: 0; margin: 0; }
 .matches li { display: flex; flex-direction: column; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .matches li:last-child { border-bottom: none; }
+
+/* fantasy */
+.small { font-size: 0.85rem; }
+.fantasy-form .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.fantasy-form select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
+.fantasy-form .check { display: flex; gap: 8px; align-items: center; margin: 12px 0; color: var(--muted); }
+.fantasy-form button { padding: 10px 18px; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-text); cursor: pointer; }
+.fantasy-form button:disabled { opacity: 0.5; cursor: default; }
+.summary-text { line-height: 1.5; white-space: pre-wrap; }
+.role-heading { margin: 16px 0 4px; color: var(--muted); font-weight: 600; }
+.picks { list-style: none; padding: 0; margin: 0; }
+.pick { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.pick:last-child { border-bottom: none; }
+.points { font-weight: 700; font-variant-numeric: tabular-nums; }
+.badge { display: inline-block; min-width: 26px; text-align: center; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.75rem; font-weight: 700; }
+details.card summary { font-size: 1rem; }

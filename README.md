@@ -5,8 +5,8 @@ Mini-project for **JAVA and Spring Framework Lab (CS3603-1)**, V Semester CSE, A
 Ask questions about real cricket stats in plain English — *"Which batter has the highest strike rate in the
 death overs over the last 10 T20 matches?"* — and get a data-grounded answer. An LLM translates the question
 into SQL (text-to-SQL), the backend runs it safely against a PostgreSQL database of ball-by-ball data, and the
-LLM explains the result like a scouting report. A fantasy advisor module (in progress) suggests playing XIs with
-captain / vice-captain picks.
+LLM explains the result like a scouting report. A fantasy advisor projects every player's fantasy points from
+recent form, venue and opponent records and picks a Dream11-style XI with captain / vice-captain.
 
 | USN | Name |
 |---|---|
@@ -37,13 +37,14 @@ JSF-Sports/
 │       ├── ingest/              Cricsheet JSON importer + /api/admin/import
 │       ├── llm/                 LLM client (OpenAI-compatible chat completions)
 │       ├── chat/                Text-to-SQL pipeline, SQL safety guard, /api/chat
+│       ├── fantasy/             Fantasy points, projections, XI selection, /api/fantasy
 │       ├── api/                 Browse/stats REST endpoints
 │       ├── config/              CORS, LLM settings
 │       └── common/              Error handling
 │   └── src/main/resources/
 │       ├── schema.sql           Database schema (also sent to the LLM as context)
 │       └── application*.properties
-├── frontend/                    React app (chat + explore pages)
+├── frontend/                    React app (chat, fantasy XI, explore pages)
 ├── data/                        Cricsheet downloads go here (git-ignored)
 ├── docs/                        Abstract, architecture notes
 ├── docker-compose.yml           Local PostgreSQL
@@ -104,7 +105,9 @@ npm run dev
 |---|---|---|
 | `POST` | `/api/chat` | `{"question": "..."}` → `{question, sql, rows, answer}` |
 | `GET` | `/api/stats/overview` | Counts of matches, teams, players, venues, balls |
+| `GET` | `/api/fantasy/suggest?team1=&team2=&venue=&explain=true` | Fantasy XI with captain / vice-captain (venue optional) |
 | `GET` | `/api/teams` | All teams |
+| `GET` | `/api/venues` | All venues |
 | `GET` | `/api/players?q=kohli` | Search players by name |
 | `GET` | `/api/players/{id}/summary` | Career batting + bowling summary |
 | `GET` | `/api/matches?limit=20` | Most recent matches |
@@ -114,7 +117,7 @@ npm run dev
 ## Running tests
 
 ```bash
-cd backend && ./mvnw test          # importer, stats and SQL-guard tests (uses H2, no Docker needed)
+cd backend && ./mvnw test          # importer, stats, SQL-guard and fantasy tests (uses H2, no Docker needed)
 cd frontend && npm run lint && npm run build
 ```
 
@@ -125,7 +128,7 @@ GitHub Actions runs both on every push and pull request.
 - [x] Project setup, schema, Cricsheet importer, stats endpoints
 - [x] Text-to-SQL chat with SQL safety guard and read-only execution
 - [x] React chat + explore UI
-- [ ] Fantasy advisor: form score, venue/matchup factors, playing XI with captain / vice-captain
+- [x] Fantasy advisor: form score, venue/matchup factors, playing XI with captain / vice-captain
 - [ ] Charts (Chart.js) for player form and team trends
 - [ ] Scheduled sync job (`@Scheduled`) for new Cricsheet matches + CricketData.org fixtures
 - [ ] Player roles and batting/bowling styles

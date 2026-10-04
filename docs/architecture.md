@@ -31,6 +31,8 @@ Cricket rules encoded in the data:
 - Byes and leg-byes are not charged to the bowler; wides and no-balls are.
 - Run outs (and retirements) are not credited to the bowler.
 - Super overs are skipped so that regular-play stats stay clean.
+- The fielder credited with each catch / stumping / run out is stored (`fielder_id`); substitutes are skipped.
+- Renamed franchises are merged under their current name (e.g. Delhi Daredevils -> Delhi Capitals).
 
 ## Text-to-SQL safety
 
@@ -46,3 +48,25 @@ LLM output is untrusted, so generated SQL passes two independent checks:
 The schema file is both the DDL that creates the tables and the context given to the LLM. Its comments explain
 cricket semantics (e.g. "over_number starts at 0, overs 16-19 are the death overs"), which noticeably improves
 the SQL the model writes. Keep the comments accurate when you change the schema.
+
+## Fantasy advisor
+
+`GET /api/fantasy/suggest?team1=..&team2=..&venue=..`
+
+1. **Squads** — each team's playing XI from its most recent match in the format.
+2. **Fantasy points per match** (`FantasyScoring`) — Dream11-style T20 rules computed from ball-by-ball data:
+   1/run, +1 per four, +2 per six, +8/+16 for 50/100; 25 per wicket, +8 bowled/LBW, +12 per maiden,
+   +4/+8/+16 for 3/4/5 wickets; 8 per catch, 12 per stumping, 6 per run out.
+3. **Projection** (`FantasyService`) —
+   `projected = 0.6 × form + 0.2 × venue average + 0.2 × average vs opponent`.
+   Form is a recency-weighted average of the last 10 matches (each older match weighs 0.85× the next);
+   venue / opponent averages need at least 3 matches, otherwise form is used in their place.
+4. **Roles** — wicket-keepers are players with stumpings; others are bowlers / all-rounders / batters from their
+   average balls bowled and faced over the last 15 matches.
+5. **Selection** (`TeamSelector`) — greedy pick of 11 under Dream11-style limits (1-4 WK, 3-6 BAT, 1-4 AR,
+   3-6 BOWL, max 7 per team): fill each role's minimum with its best players, then the best remaining.
+   The top two projections become captain (2×) and vice-captain (1.5×).
+6. **Explanation** (optional) — the XI and its numbers are sent to the LLM for a short scouting-style summary.
+
+The per-match aggregates are five simple grouped queries merged in Java: a single query with joined CTEs is
+fast on PostgreSQL but takes minutes on H2, which re-evaluates CTEs per row.

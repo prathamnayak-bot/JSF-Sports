@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import ChatPanel from './components/ChatPanel'
 import ExplorePanel from './components/ExplorePanel'
+import FantasyPanel from './components/FantasyPanel'
 
-const TABS = { ask: 'Ask the analyst', explore: 'Explore stats' }
+const TABS = { ask: 'Ask the analyst', fantasy: 'Fantasy XI', explore: 'Explore stats' }
 
 export default function App() {
   const [tab, setTab] = useState('ask')
@@ -19,7 +20,11 @@ export default function App() {
           ))}
         </nav>
       </header>
-      <main>{tab === 'ask' ? <ChatPanel /> : <ExplorePanel />}</main>
+      <main>
+        {tab === 'ask' && <ChatPanel />}
+        {tab === 'fantasy' && <FantasyPanel />}
+        {tab === 'explore' && <ExplorePanel />}
+      </main>
     </div>
   )
 }
