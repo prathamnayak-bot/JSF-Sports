@@ -1,16 +1,19 @@
 # Local PostgreSQL for development:  docker compose up -d
+# Port 5432 already taken on your machine? Set POSTGRES_PORT=5433 in .env (and use it in DB_URL).
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: cricket-postgres
     environment:
       POSTGRES_DB: cricket
       POSTGRES_USER: cricket
       POSTGRES_PASSWORD: cricket
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # creates the read-only user for the AI chat on first start
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cricket -d cricket"]
       interval: 5s

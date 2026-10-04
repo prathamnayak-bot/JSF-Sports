@@ -47,6 +47,7 @@ JSF-Sports/
 ├── frontend/                    React app (chat, fantasy XI, explore pages with charts)
 ├── data/                        Cricsheet downloads go here (git-ignored)
 ├── docs/                        Abstract, architecture notes
+├── docker/postgres/             DB init script (read-only user for the chat)
 ├── docker-compose.yml           Local PostgreSQL
 └── .env.example                 Template for your local secrets
 ```
@@ -69,6 +70,10 @@ Get a free LLM key from [Groq](https://console.groq.com/keys) (or use OpenAI / O
 ```bash
 docker compose up -d
 ```
+
+This also creates `cricket_readonly`, the read-only login the AI chat's queries run as.
+Port 5432 already in use (e.g. by a PostgreSQL installed on Windows)? Set `POSTGRES_PORT=5433` in `.env`
+and change `DB_URL` to `...localhost:5433/cricket`.
 
 **2. Start the backend** (http://localhost:8080)
 
@@ -142,7 +147,8 @@ GitHub Actions runs both on every push and pull request.
 - [x] Scheduled sync job (`@Scheduled`) for new Cricsheet matches
 - [ ] Upcoming fixtures from the CricketData.org API
 - [ ] Player roles and batting/bowling styles
-- [ ] Separate read-only database user for chat queries
+- [x] Separate read-only database user for chat queries
+- [x] Venue / franchise name clean-up (Cricsheet spells grounds several ways)
 
 ## Contributing
 

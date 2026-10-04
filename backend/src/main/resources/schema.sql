@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS player (
     bowling_style VARCHAR(60)
 );
 
--- A ground, e.g. 'MA Chidambaram Stadium, Chepauk, Chennai'.
+-- A ground, e.g. 'MA Chidambaram Stadium' (city 'Chennai'). Names are normalised: no city suffix,
+-- renamed grounds under their current name (e.g. 'Feroz Shah Kotla' -> 'Arun Jaitley Stadium').
 CREATE TABLE IF NOT EXISTS venue (
     id     BIGSERIAL PRIMARY KEY,
     name   VARCHAR(200) NOT NULL UNIQUE,

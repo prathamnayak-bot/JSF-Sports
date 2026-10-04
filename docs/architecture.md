@@ -33,15 +33,22 @@ Cricket rules encoded in the data:
 - Super overs are skipped so that regular-play stats stay clean.
 - The fielder credited with each catch / stumping / run out is stored (`fielder_id`); substitutes are skipped.
 - Renamed franchises are merged under their current name (e.g. Delhi Daredevils -> Delhi Capitals).
+- Venue names are normalised: Cricsheet writes the same ground several ways ("Wankhede Stadium",
+  "Wankhede Stadium, Mumbai", "M.Chinnaswamy Stadium"), so the importer keeps the part before the first comma,
+  tidies initials and maps renamed grounds (Feroz Shah Kotla -> Arun Jaitley Stadium). 60 names -> 36 grounds
+  for the IPL data; without this, "most matches at a venue" answers were wrong.
 
 ## Text-to-SQL safety
 
-LLM output is untrusted, so generated SQL passes two independent checks:
+LLM output is untrusted, so generated SQL passes three independent layers:
 
 1. **`SqlGuard`** — rejects anything that isn't a single `SELECT`/`WITH` statement, SQL comments, and
    write/DDL keywords or `pg_*` functions (string literals are ignored when checking).
-2. **Read-only transaction** — the query runs with `readOnly=true`, so PostgreSQL refuses writes even if
-   something slipped through. Results are capped at 200 rows with a 10-second timeout.
+2. **Read-only transaction** — the query runs with `readOnly=true`, capped at 200 rows with a 10-second timeout.
+3. **Read-only database user** (`ChatDatabase`) — with PostgreSQL, chat queries use a separate login,
+   `cricket_readonly` (created by `docker/postgres/01-readonly-user.sql`), that only has `SELECT` permission,
+   defaults to read-only transactions and has a 10-second `statement_timeout`. Even if layers 1 and 2 were
+   bypassed, PostgreSQL answers `permission denied`. (With H2 there is no separate user; layers 1-2 apply.)
 
 ## Why `schema.sql` instead of Hibernate DDL
 

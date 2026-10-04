@@ -2,14 +2,9 @@ package com.jsf.cricket.chat;
 
 import com.jsf.cricket.llm.LlmClient;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -22,7 +17,6 @@ import java.util.regex.Pattern;
 public class ChatService {
 
     static final String CANNOT_ANSWER = "CANNOT_ANSWER";
-    private static final int MAX_ROWS = 200;
     private static final int ROWS_SENT_TO_LLM = 50;
     private static final Pattern SQL_BLOCK =
             Pattern.compile("```(?:sql)?\\s*(.*?)```", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
@@ -39,22 +33,14 @@ public class ChatService {
     private final SqlGuard guard;
     private final SchemaProvider schema;
     private final ObjectMapper mapper;
-    private final JdbcTemplate readOnlyJdbc;
-    private final TransactionTemplate readOnlyTx;
+    private final ChatDatabase db;
 
-    public ChatService(LlmClient llm, SqlGuard guard, SchemaProvider schema, ObjectMapper mapper,
-                       DataSource dataSource, PlatformTransactionManager txManager) {
+    public ChatService(LlmClient llm, SqlGuard guard, SchemaProvider schema, ObjectMapper mapper, ChatDatabase db) {
         this.llm = llm;
         this.guard = guard;
         this.schema = schema;
         this.mapper = mapper;
-        this.readOnlyJdbc = new JdbcTemplate(dataSource);
-        this.readOnlyJdbc.setMaxRows(MAX_ROWS);
-        this.readOnlyJdbc.setQueryTimeout(10);
-        // read-only transaction: the database itself rejects any write that slips past SqlGuard
-        this.readOnlyTx = new TransactionTemplate(txManager);
-        this.readOnlyTx.setReadOnly(true);
-        this.readOnlyTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.db = db;
     }
 
     public record ChatAnswer(String question, String sql, List<Map<String, Object>> rows, String answer) {
@@ -156,12 +142,12 @@ public class ChatService {
 
     /** Real values from the database so the model doesn't guess names like 'IPL' or season formats. */
     private String dataHints() {
-        List<String> events = readOnlyJdbc.queryForList("""
+        List<String> events = db.queryForList("""
                 SELECT event_name FROM cricket_match WHERE event_name IS NOT NULL
                 GROUP BY event_name ORDER BY COUNT(*) DESC LIMIT 15""", String.class);
-        List<String> seasons = readOnlyJdbc.queryForList(
+        List<String> seasons = db.queryForList(
                 "SELECT DISTINCT season FROM cricket_match WHERE season IS NOT NULL ORDER BY season DESC LIMIT 25", String.class);
-        List<String> formats = readOnlyJdbc.queryForList("SELECT DISTINCT format FROM cricket_match", String.class);
+        List<String> formats = db.queryForList("SELECT DISTINCT format FROM cricket_match", String.class);
         if (events.isEmpty()) return "(no matches imported yet)";
         return "- event_name: " + quoted(events) + "\n- season: " + quoted(seasons) + "\n- format: " + quoted(formats);
     }
@@ -171,7 +157,7 @@ public class ChatService {
     }
 
     private List<Map<String, Object>> runReadOnly(String sql) {
-        return readOnlyTx.execute(status -> readOnlyJdbc.queryForList(sql));
+        return db.query(sql);
     }
 
     static String extractSql(String reply) {

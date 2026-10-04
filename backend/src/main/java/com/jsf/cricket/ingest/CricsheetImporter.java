@@ -52,6 +52,16 @@ public class CricsheetImporter {
             "Royal Challengers Bangalore", "Royal Challengers Bengaluru",
             "Rising Pune Supergiants", "Rising Pune Supergiant");
 
+    /** Renamed grounds (after {@link #canonicalVenue} clean-up), stored under their current name. */
+    private static final Map<String, String> VENUE_RENAMES = Map.of(
+            "Feroz Shah Kotla", "Arun Jaitley Stadium",
+            "Sardar Patel Stadium", "Narendra Modi Stadium",
+            "Punjab Cricket Association Stadium", "Punjab Cricket Association IS Bindra Stadium",
+            "Sheikh Zayed Stadium", "Zayed Cricket Stadium",
+            "Subrata Roy Sahara Stadium", "Maharashtra Cricket Association Stadium");
+
+    private static final Map<String, String> CITY_RENAMES = Map.of("Bangalore", "Bengaluru");
+
     private static final String INSERT_DELIVERY = """
             INSERT INTO delivery (innings_id, over_number, ball_in_over, batter_id, bowler_id, non_striker_id,
                                   runs_batter, runs_extras, runs_total, extra_type, is_legal_ball,
@@ -301,8 +311,19 @@ public class CricsheetImporter {
         return teams.findByName(name).orElseGet(() -> teams.save(new Team(name)));
     }
 
-    private Venue venue(String name, String city) {
+    private Venue venue(String nameInFile, String cityInFile) {
+        String name = canonicalVenue(nameInFile);
+        String city = cityInFile == null ? null : CITY_RENAMES.getOrDefault(cityInFile, cityInFile);
         return venues.findByName(name).orElseGet(() -> venues.save(new Venue(name, city)));
+    }
+
+    /**
+     * Cricsheet spells grounds several ways ("Wankhede Stadium", "Wankhede Stadium, Mumbai",
+     * "M.Chinnaswamy Stadium"...). Keep the part before the first comma, tidy initials, apply renames.
+     */
+    static String canonicalVenue(String name) {
+        String base = name.split(",")[0].replace(".", " ").replaceAll("\\s+", " ").strip();
+        return VENUE_RENAMES.getOrDefault(base, base);
     }
 
     private static String textOrNull(JsonNode node) {
