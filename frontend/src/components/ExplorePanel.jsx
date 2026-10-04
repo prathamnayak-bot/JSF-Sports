@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import PlayerFormChart from './PlayerFormChart'
+import TeamTrends from './TeamTrends'
 
 function Stat({ label, value }) {
   return (
@@ -63,6 +65,7 @@ function PlayerSearch() {
             <Stat label="Average" value={summary.bowling.average} />
             <Stat label="Balls" value={summary.bowling.ballsBowled} />
           </div>
+          <PlayerFormChart key={summary.player.id} playerId={summary.player.id} name={summary.player.name} />
         </div>
       )}
     </div>
@@ -100,6 +103,8 @@ export default function ExplorePanel() {
       )}
 
       <PlayerSearch />
+
+      <TeamTrends />
 
       <div className="card">
         <h2>Recent matches</h2>

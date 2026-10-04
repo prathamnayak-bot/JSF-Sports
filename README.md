@@ -24,7 +24,7 @@ Approved abstract: [`docs/abstract/`](docs/abstract/) · Design notes: [`docs/ar
 | Database | PostgreSQL 17 (Docker) · H2 in-memory for quick runs without Docker |
 | Data | [Cricsheet](https://cricsheet.org) ball-by-ball JSON (importer included) |
 | AI | Any OpenAI-compatible LLM API — Groq (gpt-oss-120b, free tier), OpenAI (GPT-4o-mini) or local Ollama (qwen2.5-coder) |
-| Frontend | React 19 + Vite |
+| Frontend | React 19 + Vite, Chart.js |
 
 ## Repository layout
 
@@ -44,7 +44,7 @@ JSF-Sports/
 │   └── src/main/resources/
 │       ├── schema.sql           Database schema (also sent to the LLM as context)
 │       └── application*.properties
-├── frontend/                    React app (chat, fantasy XI, explore pages)
+├── frontend/                    React app (chat, fantasy XI, explore pages with charts)
 ├── data/                        Cricsheet downloads go here (git-ignored)
 ├── docs/                        Abstract, architecture notes
 ├── docker-compose.yml           Local PostgreSQL
@@ -110,6 +110,8 @@ npm run dev
 | `GET` | `/api/venues` | All venues |
 | `GET` | `/api/players?q=kohli` | Search players by name |
 | `GET` | `/api/players/{id}/summary` | Career batting + bowling summary |
+| `GET` | `/api/players/{id}/form?limit=20` | Fantasy points per match (form chart) |
+| `GET` | `/api/teams/{id}/seasons` | Wins / losses per season |
 | `GET` | `/api/matches?limit=20` | Most recent matches |
 | `POST` | `/api/admin/import` | `{"directory": "..."}` — import a folder of Cricsheet JSON files |
 | `GET` | `/actuator/health` | Health check |
@@ -129,7 +131,7 @@ GitHub Actions runs both on every push and pull request.
 - [x] Text-to-SQL chat with SQL safety guard and read-only execution
 - [x] React chat + explore UI
 - [x] Fantasy advisor: form score, venue/matchup factors, playing XI with captain / vice-captain
-- [ ] Charts (Chart.js) for player form and team trends
+- [x] Charts (Chart.js) for player form and team trends
 - [ ] Scheduled sync job (`@Scheduled`) for new Cricsheet matches + CricketData.org fixtures
 - [ ] Player roles and batting/bowling styles
 - [ ] Separate read-only database user for chat queries

@@ -18,7 +18,9 @@ export const api = {
   recentMatches: (limit = 10) => request(`/matches?limit=${limit}`),
   searchPlayers: (q) => request(`/players?q=${encodeURIComponent(q)}`),
   playerSummary: (id) => request(`/players/${id}/summary`),
+  playerForm: (id, limit = 20) => request(`/players/${id}/form?limit=${limit}`),
   teams: () => request('/teams'),
+  teamSeasons: (id) => request(`/teams/${id}/seasons`),
   venues: () => request('/venues'),
   fantasy: ({ team1, team2, venue, explain }) =>
     request(

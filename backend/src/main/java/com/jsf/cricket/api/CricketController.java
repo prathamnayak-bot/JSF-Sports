@@ -81,6 +81,12 @@ public class CricketController {
         return teams.findAll(Sort.by("name")).stream().map(TeamDto::of).toList();
     }
 
+    @GetMapping("/teams/{id}/seasons")
+    public List<StatsQueries.SeasonRecord> teamSeasons(@PathVariable long id) {
+        if (!teams.existsById(id)) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found");
+        return stats.teamSeasons(id);
+    }
+
     @GetMapping("/venues")
     public List<VenueDto> venues() {
         return venues.findAll(Sort.by("name")).stream().map(v -> new VenueDto(v.getId(), v.getName(), v.getCity())).toList();

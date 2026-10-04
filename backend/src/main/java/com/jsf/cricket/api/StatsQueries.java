@@ -3,6 +3,7 @@ package com.jsf.cricket.api;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Map;
 
 /** Hand-written aggregate queries over the ball-by-ball data. */
@@ -30,6 +31,24 @@ public class StatsQueries {
                 SELECT (SELECT COUNT(*) FROM cricket_match), (SELECT COUNT(*) FROM team),
                        (SELECT COUNT(*) FROM player), (SELECT COUNT(*) FROM venue), (SELECT COUNT(*) FROM delivery)""",
                 (rs, i) -> new Overview(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5)));
+    }
+
+    /** One season of a team's record; year is the calendar year the season started in (seasons can be '2007/08'). */
+    public record SeasonRecord(String season, int year, int matches, int wins, int losses) {
+    }
+
+    public List<SeasonRecord> teamSeasons(long teamId) {
+        return jdbc.query("""
+                SELECT season, EXTRACT(YEAR FROM MIN(match_date)) AS yr, COUNT(*) AS matches,
+                       COUNT(CASE WHEN winner_team_id = ? THEN 1 END) AS wins,
+                       COUNT(CASE WHEN winner_team_id IS NOT NULL AND winner_team_id <> ? THEN 1 END) AS losses
+                FROM cricket_match
+                WHERE team1_id = ? OR team2_id = ?
+                GROUP BY season
+                ORDER BY MIN(match_date)""",
+                (rs, i) -> new SeasonRecord(rs.getString("season"), rs.getInt("yr"), rs.getInt("matches"),
+                        rs.getInt("wins"), rs.getInt("losses")),
+                teamId, teamId, teamId, teamId);
     }
 
     public BattingSummary batting(long playerId) {

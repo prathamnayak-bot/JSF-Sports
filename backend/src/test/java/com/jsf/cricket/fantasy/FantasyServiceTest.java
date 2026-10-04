@@ -1,5 +1,6 @@
 package com.jsf.cricket.fantasy;
 
+import com.jsf.cricket.api.StatsQueries;
 import com.jsf.cricket.domain.PlayerRole;
 import com.jsf.cricket.ingest.CricsheetImporter;
 import com.jsf.cricket.repository.TeamRepository;
@@ -21,6 +22,8 @@ class FantasyServiceTest {
     FantasyService fantasy;
     @Autowired
     TeamRepository teams;
+    @Autowired
+    StatsQueries stats;
 
     @Test
     void suggestsTeamFromSampleMatch() throws Exception {
@@ -43,5 +46,15 @@ class FantasyServiceTest {
         FantasyService.Pick batterC = s.xi().stream().filter(p -> p.name().equals("Batter C")).findFirst().orElseThrow();
         assertThat(batterC.projected()).as("runs + boundary bonuses + catch").isEqualTo(23.0);
         assertThat(s.notes()).anyMatch(n -> n.contains("Not enough eligible players"));
+
+        var form = fantasy.playerForm(batterC.playerId(), "T20", 20);
+        assertThat(form).singleElement().satisfies(f -> {
+            assertThat(f.points()).isEqualTo(23);
+            assertThat(f.runs()).isEqualTo(12);
+            assertThat(f.opponent()).isEqualTo("Royal Challengers Bengaluru");
+        });
+
+        assertThat(stats.teamSeasons(csk)).singleElement()
+                .isEqualTo(new StatsQueries.SeasonRecord("2024", 2024, 1, 1, 0));
     }
 }

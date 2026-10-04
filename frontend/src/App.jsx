@@ -6,7 +6,12 @@ import FantasyPanel from './components/FantasyPanel'
 const TABS = { ask: 'Ask the analyst', fantasy: 'Fantasy XI', explore: 'Explore stats' }
 
 export default function App() {
-  const [tab, setTab] = useState('ask')
+  // the tab lives in the URL hash so pages can be linked directly, e.g. /#fantasy
+  const [tab, setTabState] = useState(() => (location.hash.slice(1) in TABS ? location.hash.slice(1) : 'ask'))
+  const setTab = (key) => {
+    setTabState(key)
+    history.replaceState(null, '', `#${key}`)
+  }
 
   return (
     <div className="app">

@@ -15,10 +15,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -69,6 +71,24 @@ public class FantasyService {
     public record Suggestion(String team1, String team2, String venue, String format,
                              List<Pick> xi, Long captainId, Long viceCaptainId, List<Pick> bench,
                              double projectedTotal, String summary, String scoringRules, List<String> notes) {
+    }
+
+    /** One match in a player's form chart. */
+    public record FormPoint(long matchId, LocalDate date, String opponent, String venue,
+                            int runs, int ballsFaced, int wickets, int points) {
+    }
+
+    /** The player's last {@code limit} matches in this format, oldest first (ready to plot left to right). */
+    public List<FormPoint> playerForm(long playerId, String format, int limit) {
+        List<PlayerMatch> recent = repo.matchLines(List.of(playerId), format).stream().limit(limit).toList();
+        Map<Long, String> teamNames = teams.findAllById(recent.stream().map(PlayerMatch::opponentId).toList())
+                .stream().collect(Collectors.toMap(Team::getId, Team::getName));
+        Map<Long, String> venueNames = venues.findAllById(recent.stream().map(PlayerMatch::venueId)
+                        .filter(Objects::nonNull).toList())
+                .stream().collect(Collectors.toMap(Venue::getId, Venue::getName));
+        return recent.reversed().stream().map(m -> new FormPoint(m.matchId(), m.date(),
+                teamNames.get(m.opponentId()), venueNames.get(m.venueId()),
+                m.line().runs(), m.ballsFaced(), m.line().wickets(), FantasyScoring.points(m.line()))).toList();
     }
 
     public Suggestion suggest(long team1Id, long team2Id, Long venueId, String format, boolean explain) {
