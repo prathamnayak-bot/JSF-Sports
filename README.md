@@ -23,7 +23,7 @@ Approved abstract: [`docs/abstract/`](docs/abstract/) · Design notes: [`docs/ar
 | Backend | Java 21, Spring Boot 4 (Web MVC, Data JPA / Hibernate, Validation, Actuator) |
 | Database | PostgreSQL 17 (Docker) · H2 in-memory for quick runs without Docker |
 | Data | [Cricsheet](https://cricsheet.org) ball-by-ball JSON (importer included) |
-| AI | Any OpenAI-compatible LLM API — Groq (Llama 3, free), OpenAI (GPT-4o-mini) or local Ollama |
+| AI | Any OpenAI-compatible LLM API — Groq (gpt-oss-120b, free tier), OpenAI (GPT-4o-mini) or local Ollama (qwen2.5-coder) |
 | Frontend | React 19 + Vite |
 
 ## Repository layout
