@@ -34,7 +34,7 @@ JSF-Sports/
 │   └── src/main/java/com/jsf/cricket/
 │       ├── domain/              JPA entities: Team, Player, Venue, CricketMatch, Innings
 │       ├── repository/          Spring Data JPA repositories
-│       ├── ingest/              Cricsheet JSON importer + /api/admin/import
+│       ├── ingest/              Cricsheet importer, scheduled sync, /api/admin/*
 │       ├── llm/                 LLM client (OpenAI-compatible chat completions)
 │       ├── chat/                Text-to-SQL pipeline, SQL safety guard, /api/chat
 │       ├── fantasy/             Fantasy points, projections, XI selection, /api/fantasy
@@ -80,7 +80,13 @@ cd backend
 No Docker? Run with the in-memory H2 database instead (data is lost on restart):
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=h2`
 
-**3. Load some cricket data** — follow [`data/README.md`](data/README.md) (download a Cricsheet zip, then call the import endpoint).
+**3. Load the cricket data** (downloads all IPL matches from Cricsheet, ~25 seconds):
+
+```bash
+curl -X POST http://localhost:8080/api/admin/sync
+```
+
+See [`data/README.md`](data/README.md) for daily automatic syncs and other competitions.
 
 **4. Start the frontend** (http://localhost:5173)
 
@@ -113,6 +119,7 @@ npm run dev
 | `GET` | `/api/players/{id}/form?limit=20` | Fantasy points per match (form chart) |
 | `GET` | `/api/teams/{id}/seasons` | Wins / losses per season |
 | `GET` | `/api/matches?limit=20` | Most recent matches |
+| `POST` | `/api/admin/sync` | Download the configured Cricsheet datasets and import new matches |
 | `POST` | `/api/admin/import` | `{"directory": "..."}` — import a folder of Cricsheet JSON files |
 | `GET` | `/actuator/health` | Health check |
 
@@ -132,7 +139,8 @@ GitHub Actions runs both on every push and pull request.
 - [x] React chat + explore UI
 - [x] Fantasy advisor: form score, venue/matchup factors, playing XI with captain / vice-captain
 - [x] Charts (Chart.js) for player form and team trends
-- [ ] Scheduled sync job (`@Scheduled`) for new Cricsheet matches + CricketData.org fixtures
+- [x] Scheduled sync job (`@Scheduled`) for new Cricsheet matches
+- [ ] Upcoming fixtures from the CricketData.org API
 - [ ] Player roles and batting/bowling styles
 - [ ] Separate read-only database user for chat queries
 

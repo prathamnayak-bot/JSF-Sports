@@ -3,14 +3,18 @@ package com.jsf.cricket.ingest;
 import com.jsf.cricket.api.StatsQueries;
 import com.jsf.cricket.repository.PlayerRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -70,5 +74,24 @@ class CricsheetImporterTest {
         assertThat(bowl.runsConceded()).as("leg-bye not charged to bowler").isEqualTo(12);
         assertThat(bowl.wickets()).isEqualTo(1);
         assertThat(bowl.economy()).isEqualTo(12.0);
+    }
+
+    @Test
+    void importsMatchesStraightFromAZip(@TempDir Path tmp) throws Exception {
+        Path zip = tmp.resolve("sample_json.zip");
+        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(zip))) {
+            out.putNextEntry(new ZipEntry("README.txt")); // Cricsheet zips include a README - must be ignored
+            out.write("readme".getBytes());
+            out.putNextEntry(new ZipEntry("1000001.json"));
+            out.write(new ClassPathResource("cricsheet/1000001.json").getContentAsByteArray());
+            out.closeEntry();
+        }
+
+        CricsheetImporter.ImportResult result = importer.importZip(zip);
+
+        assertThat(result.failed()).isZero();
+        assertThat(result.imported() + result.skipped()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM cricket_match WHERE cricsheet_id = '1000001'", Integer.class))
+                .isEqualTo(1);
     }
 }

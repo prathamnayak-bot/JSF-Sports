@@ -18,15 +18,21 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Imports Cricsheet match files (JSON format, https://cricsheet.org/format/json/) into the database.
@@ -83,29 +89,73 @@ public class CricsheetImporter {
         try (Stream<Path> s = Files.list(dir)) {
             files = s.filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList();
         }
-        int imported = 0, skipped = 0, failed = 0;
-        List<String> errors = new ArrayList<>();
+        Tally tally = new Tally();
         for (Path file : files) {
+            tally.run(file.getFileName().toString(), () -> importFile(file));
+        }
+        log.info("Cricsheet import from {}: {}", dir, tally);
+        return tally.result();
+    }
+
+    /** Imports the match files straight out of a Cricsheet zip download, without unzipping to disk. */
+    public ImportResult importZip(Path zip) throws IOException {
+        Tally tally = new Tally();
+        try (ZipFile zf = new ZipFile(zip.toFile())) {
+            for (ZipEntry entry : Collections.list(zf.entries())) {
+                String name = Path.of(entry.getName()).getFileName().toString();
+                if (entry.isDirectory() || !name.endsWith(".json")) continue;
+                tally.run(name, () -> {
+                    String cricsheetId = name.replaceFirst("\\.json$", "");
+                    if (matches.existsByCricsheetId(cricsheetId)) return false;
+                    try (InputStream in = zf.getInputStream(entry)) {
+                        importJson(cricsheetId, mapper.readTree(in));
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                    return true;
+                });
+            }
+        }
+        log.info("Cricsheet import from {}: {}", zip.getFileName(), tally);
+        return tally.result();
+    }
+
+    /** Counts imported / skipped / failed files and keeps the first few error messages. */
+    private static class Tally {
+        int imported, skipped, failed;
+        final List<String> errors = new ArrayList<>();
+
+        void run(String name, Supplier<Boolean> importOne) {
             try {
-                if (importFile(file)) imported++;
+                if (importOne.get()) imported++;
                 else skipped++;
             } catch (RuntimeException e) {
                 failed++;
-                if (errors.size() < 20) errors.add(file.getFileName() + ": " + e.getMessage());
-                log.warn("Failed to import {}", file, e);
+                if (errors.size() < 20) errors.add(name + ": " + e.getMessage());
+                log.warn("Failed to import {}", name, e);
             }
         }
-        log.info("Cricsheet import from {}: {} imported, {} skipped, {} failed", dir, imported, skipped, failed);
-        return new ImportResult(imported, skipped, failed, errors);
+
+        ImportResult result() {
+            return new ImportResult(imported, skipped, failed, errors);
+        }
+
+        @Override
+        public String toString() {
+            return imported + " imported, " + skipped + " skipped, " + failed + " failed";
+        }
     }
 
     /** Imports one match file. Returns false if the match was already in the database. */
     public boolean importFile(Path file) {
         String cricsheetId = file.getFileName().toString().replaceFirst("\\.json$", "");
         if (matches.existsByCricsheetId(cricsheetId)) return false;
-        JsonNode root = mapper.readTree(file.toFile());
-        tx.executeWithoutResult(status -> importMatch(cricsheetId, root));
+        importJson(cricsheetId, mapper.readTree(file.toFile()));
         return true;
+    }
+
+    private void importJson(String cricsheetId, JsonNode root) {
+        tx.executeWithoutResult(status -> importMatch(cricsheetId, root));
     }
 
     private void importMatch(String cricsheetId, JsonNode root) {
