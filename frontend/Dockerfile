@@ -1,3 +1,7 @@
+# Default for the optional "certs" context: empty. docker compose replaces it with ./docker/certs;
+# a plain `docker build` (e.g. on Render) uses this empty stage, so no extra certificates are added.
+FROM scratch AS certs
+
 # --- build the React app ---
 FROM node:22-alpine AS build
 # extra root certificates from docker/certs (antivirus HTTPS scanning / company proxies), for npm

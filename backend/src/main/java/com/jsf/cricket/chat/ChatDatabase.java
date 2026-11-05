@@ -44,6 +44,7 @@ public class ChatDatabase implements DisposableBean {
                     .url(url).username(username).password(password).build();
             ownPool.setPoolName("chat-readonly");
             ownPool.setMaximumPoolSize(3);
+            ownPool.setMinimumIdle(0);   // no idle connections, so a serverless database (Neon) can sleep
             ownPool.setReadOnly(true);
             dataSource = ownPool;
             txManager = new DataSourceTransactionManager(ownPool);

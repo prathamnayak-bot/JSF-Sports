@@ -1,6 +1,10 @@
 # Trusts any extra root certificates from docker/certs (antivirus HTTPS scanning / company proxies)
 # in both the OS store (wget in mvnw) and Java's store (Maven, and the app's HTTPS calls).
 
+# Default for the optional "certs" context: empty. docker compose replaces it with ./docker/certs;
+# a plain `docker build` (e.g. on Render) uses this empty stage, so no extra certificates are added.
+FROM scratch AS certs
+
 # --- build: compile and package with the Maven wrapper (no local Java/Maven needed) ---
 FROM eclipse-temurin:21-jdk-alpine AS build
 COPY --from=certs . /tmp/certs/

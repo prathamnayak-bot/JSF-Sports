@@ -1,0 +1,54 @@
+# Render blueprint: Render -> New -> Blueprint -> pick this repo. Creates the two services below (free plan).
+# The database is a free Neon PostgreSQL (neon.tech). Values marked "sync: false" are asked for once,
+# in the Render dashboard; they are never stored in this file. Step-by-step guide: docs/DEPLOYMENT.md
+services:
+  # --- Spring Boot API (Docker) ---
+  - type: web
+    name: jsf-sports-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SERVER_PORT
+        value: "8080"
+      # free instances have 512 MB of memory: cap the Java heap and metaspace well below that
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx300m -XX:MaxMetaspaceSize=150m -Xss512k -XX:+UseSerialGC"
+      # Neon connection, e.g. jdbc:postgresql://ep-xxx.region.aws.neon.tech/neondb?sslmode=require&reWriteBatchedInserts=true
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_POOL_SIZE
+        value: "3"
+      - key: LLM_API_KEY
+        sync: false
+      - key: CRICKETDATA_API_KEY
+        sync: false
+      # protects /api/admin/** - Render generates a random value; see it under the service's Environment tab
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # the website's address, e.g. https://jsf-sports.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+
+  # --- React website (static files) ---
+  - type: web
+    name: jsf-sports
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      # single-page app: unknown paths fall back to index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # the API's address, e.g. https://jsf-sports-api.onrender.com
+      - key: VITE_API_URL
+        sync: false

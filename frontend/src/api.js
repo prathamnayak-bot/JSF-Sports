@@ -1,7 +1,10 @@
 // Thin wrapper around the backend REST API (proxied to :8080 by Vite in development).
+// When the website and the backend are hosted separately (e.g. on Render), build with
+// VITE_API_URL=https://<backend-host> so requests go straight to the backend.
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 async function request(path, options = {}) {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })

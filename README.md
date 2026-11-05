@@ -155,6 +155,12 @@ Interactive docs (try every endpoint in the browser): **http://localhost:8080/sw
 | `POST` | `/api/admin/import` | `{"directory": "..."}` — import a folder of Cricsheet JSON files |
 | `GET` | `/actuator/health` | Health check |
 
+## Deploying online
+
+The app can be hosted for free on Render (website + API) with a Neon PostgreSQL database. `render.yaml` describes both services.
+Step-by-step guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). On a public server, set `ADMIN_TOKEN`: the
+`/api/admin/*` endpoints then need the header `X-Admin-Token`, and the AI features are rate-limited.
+
 ## Running tests
 
 ```bash
