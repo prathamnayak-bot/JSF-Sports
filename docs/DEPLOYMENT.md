@@ -16,7 +16,7 @@ Free-plan limits to know before a demo:
 
 ## 1. Database: Neon
 
-1. Sign in at https://neon.tech and create a project (PostgreSQL 17, a region close to Render's, e.g. AWS Singapore).
+1. Sign in at https://neon.tech and create a project in **AWS Asia Pacific (Singapore)**, the same region as the API in `render.yaml`.
 2. On the project dashboard, click **Connect** and copy the host, database, user and password. The JDBC URL is:
    `jdbc:postgresql://<host>/<database>?sslmode=require&reWriteBatchedInserts=true`
 3. Copy the data from your local Docker database (about 55 MB) into Neon. This runs `pg_dump`/`psql` from the Postgres image, so you don't need to install anything:
@@ -40,7 +40,7 @@ Free-plan limits to know before a demo:
    ALTER DEFAULT PRIVILEGES FOR ROLE neondb_owner IN SCHEMA public GRANT SELECT ON TABLES TO cricket_readonly;
    ```
 
-   Then add `CHAT_DB_USERNAME=cricket_readonly` and `CHAT_DB_PASSWORD=...` to the API's environment on Render. If you skip this step, chat queries still run in read-only transactions behind the SQL guard.
+   Render then asks for `CHAT_DB_PASSWORD`. If you skip this step, delete `CHAT_DB_USERNAME` from the API's environment on Render; chat queries still run in read-only transactions behind the SQL guard.
 
 ## 2. Website and API: Render
 

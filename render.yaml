@@ -7,6 +7,7 @@ services:
     name: jsf-sports-api
     runtime: docker
     plan: free
+    region: singapore   # same region as the Neon database
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /actuator/health
@@ -22,6 +23,11 @@ services:
       - key: DB_USERNAME
         sync: false
       - key: DB_PASSWORD
+        sync: false
+      # optional read-only user for AI chat queries (docs/DEPLOYMENT.md, step 1.4)
+      - key: CHAT_DB_USERNAME
+        value: cricket_readonly
+      - key: CHAT_DB_PASSWORD
         sync: false
       - key: DB_POOL_SIZE
         value: "3"
